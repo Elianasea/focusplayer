@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>Focus Flow</title>
+    <style>
+        :root {
+            /* 莫蘭迪色系定義 (保持不變) */
+            --bg-color: #F4F5F0;
+            --text-color: #58595B;
+            --focus-color: #8CA6A8;
+            --short-break-color: #A7BFA5;
+            --long-break-color: #Ceb3b3;
+            
+            /* 當前主題色變量 */
+            --current-theme: var(--focus-color);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between; /* 拉開上下間距 */
+            align-items: center;
+            transition: background-color 1s ease, color 0.5s ease;
+            overflow: hidden;
+            padding: 60px 30px; /* 增加整體留白 */
+            box-sizing: border-box;
+        }
+
+        /* SVG 圖標通用樣式 */
+        .icon {
+            width: 24px;
+            height: 24px;
+            stroke: currentColor;
+            stroke-width: 1.5; /* 線條細度 */
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            fill: none;
+        }
+
+        /* 頂部區域 */
+        .top-section {
+            text-align: center;
+            margin-top: 20vh;
+        }
+
+        #status-label {
+            font-size: 1rem;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+            opacity: 0.7;
+            font-weight: 400;
+        }
+
+        /* 計時器大字：更大，更細 */
+        #timer-display {
+            font-size: 6rem;
+            font-weight: 200; /* 極細字重 */
+            letter-spacing: -1px;
+            margin-bottom: 10px;
+            font-variant-numeric: tabular-nums;
+            line-height: 1;
+        }
+
+        #song-info {
+            height: 20px;
+            font-size: 0.9rem;
+            opacity: 0.6;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 300px;
+            margin: 0 auto;
+        }
+
+        /* 中部控制區 */
+        .control-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 320px;
+            gap: 35px; /* 增加控件間距 */
+        }
+
+        /* 主按鈕：實心底配細線圖標 */
+        .btn-main {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: none;
+            background: var(--current-theme);
+            color: var(--bg-color); /* 圖標顏色反白 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.5s;
+            box-shadow: 0 10px 20px -5px rgba(0,0,0,0.1);
+        }
+
+        .btn-main .icon {
+            width: 32px;
+            height: 32px;
+            stroke-width: 1.2;
+        }
+
+        .btn-main:active {
+            transform: scale(0.96);
+        }
+
+        /* 音量區塊：極簡化 */
+        .volume-container {
+            width: 80%;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            opacity: 0.8;
+        }
+        
+        .volume-container .icon {
+            width: 18px;
+            height: 18px;
+            opacity: 0.7;
+        }
+
+        /* 自定義極細滑桿 */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 2px; /* 極細軌道 */
+            background: rgba(0,0,0,0.1);
+            border-radius: 1px;
+            outline: none;
+        }
+        
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--text-color);
+            cursor: pointer;
+            border: 2px solid var(--bg-color); /* 增加一個白邊讓它更精緻 */
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+
+
+        /* 底部檔案上傳區 */
+        .upload-section {
+            width: 100%;
+            max-width: 320px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 30px;
+        }
+
+        .file-btn {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: var(--text-color);
+            border-bottom: 1px solid rgba(0,0,0,0.05); /* 僅保留極淡底線 */
+            transition: opacity 0.2s;
+        }
+
+        .file-btn:active {
+            opacity: 0.6;
+        }
+        
+        .file-btn-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 500;
+        }
+
+        .file-btn-left .icon {
+            width: 18px;
+            height: 18px;
+            opacity: 0.6;
+        }
+        
+        .file-status {
+            font-size: 0.75rem;
+            opacity: 0.5;
+            font-weight: 400;
+        }
+
+        input[type="file"] { display: none; }
+
+    </style>
+</head>
+<body>
+
+    <div class="top-section">
+        <div id="status-label">Focus</div>
+        <div id="timer-display">25:00</div>
+        <div id="song-info">Select music to start</div>
+    </div>
+    
+    <div class="control-section">
+        <button id="main-btn" class="btn-main">
+            <svg class="icon" id="play-icon" viewBox="0 0 24 24">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+            <svg class="icon" id="pause-icon" viewBox="0 0 24 24" style="display:none">
+                <line x1="10" y1="4" x2="10" y2="20"></line>
+                <line x1="14" y1="4" x2="14" y2="20"></line>
+            </svg>
+        </button>
+        
+        <div class="volume-container">
+            <svg class="icon" viewBox="0 0 24 24">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            </svg>
+            <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="0.8">
+            <svg class="icon" viewBox="0 0 24 24">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            </svg>
+        </div>
+    </div>
+
+    <div class="upload-section">
+        <label class="file-btn" onclick="document.getElementById('focus-files').click()">
+            <div class="file-btn-left">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+                <span>Focus List (25m)</span>
+            </div>
+            <span id="focus-count" class="file-status">Empty</span>
+        </label>
+        <label class="file-btn" onclick="document.getElementById('short-files').click()">
+            <div class="file-btn-left">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+                <span>Short Break (5m)</span>
+            </div>
+            <span id="short-count" class="file-status">Empty</span>
+        </label>
+        <label class="file-btn" onclick="document.getElementById('long-files').click()">
+            <div class="file-btn-left">
+                 <svg class="icon" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+                <span>Long Break (30m)</span>
+            </div>
+            <span id="long-count" class="file-status">Empty</span>
+        </label>
+    </div>
+
+    <input type="file" id="focus-files" multiple accept="audio/*">
+    <input type="file" id="short-files" multiple accept="audio/*">
+    <input type="file" id="long-files" multiple accept="audio/*">
+
+    <audio id="audio-player"></audio>
+
+    <script>
+        // --- 變數設置 (邏輯保持不變) ---
+        const phases = {
+            FOCUS: { time: 25 * 60, name: "Focus Time", color: "var(--focus-color)" },
+            SHORT_BREAK: { time: 5 * 60, name: "Short Break", color: "var(--short-break-color)" },
+            LONG_BREAK: { time: 30 * 60, name: "Long Break", color: "var(--long-break-color)" }
+        };
+
+        let currentPhase = 'FOCUS';
+        let pomodoroCount = 0;
+        let timer = null;
+        let timeLeft = phases.FOCUS.time;
+        let isRunning = false;
+        
+        const playlists = { FOCUS: [], SHORT_BREAK: [], LONG_BREAK: [] };
+
+        // DOM 元素
+        const timerDisplay = document.getElementById('timer-display');
+        const statusLabel = document.getElementById('status-label');
+        const mainBtn = document.getElementById('main-btn');
+        const playIcon = document.getElementById('play-icon');
+        const pauseIcon = document.getElementById('pause-icon');
+        const audioPlayer = document.getElementById('audio-player');
+        const songInfo = document.getElementById('song-info');
+        const volumeSlider = document.getElementById('volume-slider');
+
+        // --- 核心邏輯 ---
+
+        function updateUIColors() {
+            const color = phases[currentPhase].color;
+            document.documentElement.style.setProperty('--current-theme', color);
+            statusLabel.style.color = color;
+        }
+
+        function updatePlayButtonState(playing) {
+            if (playing) {
+                playIcon.style.display = 'none';
+                pauseIcon.style.display = 'block';
+            } else {
+                playIcon.style.display = 'block';
+                pauseIcon.style.display = 'none';
+            }
+        }
+
+        function handleFiles(inputId, phaseKey, countId) {
+            document.getElementById(inputId).addEventListener('change', (e) => {
+                const files = Array.from(e.target.files);
+                if (files.length > 0) {
+                    playlists[phaseKey] = files;
+                    document.getElementById(countId).innerText = `${files.length} tracks`;
+                    if (currentPhase === phaseKey && !isRunning && audioPlayer.src === "") {
+                        loadPlaylist(phaseKey);
+                    }
+                }
+            });
+        }
+        
+        handleFiles('focus-files', 'FOCUS', 'focus-count');
+        handleFiles('short-files', 'SHORT_BREAK', 'short-count');
+        handleFiles('long-files', 'LONG_BREAK', 'long-count');
+
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+            const s = (seconds % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        function switchPhase() {
+            audioPlayer.pause();
+            if (currentPhase === 'FOCUS') {
+                pomodoroCount++;
+                if (pomodoroCount >= 4) {
+                    currentPhase = 'LONG_BREAK';
+                    pomodoroCount = 0;
+                } else {
+                    currentPhase = 'SHORT_BREAK';
+                }
+            } else {
+                currentPhase = 'FOCUS';
+            }
+            timeLeft = phases[currentPhase].time;
+            statusLabel.innerText = phases[currentPhase].name;
+            timerDisplay.innerText = formatTime(timeLeft);
+            updateUIColors();
+            loadPlaylist(currentPhase);
+            audioPlayer.play();
+            updatePlayButtonState(true);
+        }
+
+        function tick() {
+            if (timeLeft > 0) {
+                timeLeft--;
+                timerDisplay.innerText = formatTime(timeLeft);
+            } else {
+                switchPhase();
+            }
+        }
+
+        function toggleTimer() {
+            if (isRunning) {
+                clearInterval(timer);
+                audioPlayer.pause();
+                updatePlayButtonState(false);
+            } else {
+                if (playlists[currentPhase].length === 0) {
+                    alert(`Please import music for ${phases[currentPhase].name}`);
+                    return;
+                }
+                if(audioPlayer.src === "") {
+                    loadPlaylist(currentPhase);
+                }
+                timer = setInterval(tick, 1000);
+                audioPlayer.play();
+                updatePlayButtonState(true);
+            }
+            isRunning = !isRunning;
+        }
+
+        function loadPlaylist(phase) {
+            if (playlists[phase].length === 0) return;
+            playRandomSong(phase);
+        }
+
+        function playRandomSong(phase) {
+            const list = playlists[phase];
+            if (!list || list.length === 0) return;
+            const randomIndex = Math.floor(Math.random() * list.length);
+            const file = list[randomIndex];
+            const fileURL = URL.createObjectURL(file);
+            audioPlayer.src = fileURL;
+            audioPlayer.volume = volumeSlider.value;
+            songInfo.innerText = file.name.replace(/\.[^/.]+$/, "");
+            
+            audioPlayer.onended = () => {
+                if (isRunning) {
+                    playRandomSong(phase);
+                    audioPlayer.play();
+                }
+            };
+        }
+
+        mainBtn.addEventListener('click', toggleTimer);
+        volumeSlider.addEventListener('input', (e) => {
+            audioPlayer.volume = e.target.value;
+        });
+
+        updateUIColors();
+    </script>
+</body>
+</html>
